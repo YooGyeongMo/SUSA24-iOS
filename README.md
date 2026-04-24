@@ -75,7 +75,7 @@
 ## 🧑‍💻 문제 해결 과정
 
 <details>
-<summary><b>▶ Timeline 대량 데이터 렌더링 성능 최적화</b></summary>
+<summary><b>Timeline 대량 데이터 렌더링 성능 최적화</b></summary>
 
 [PR #245](https://github.com/DeveloperAcademy-POSTECH/2025-C6-M6-DreamWorms/pull/245)
 
@@ -181,7 +181,7 @@ extension Date {
 </details>
 
 <details>
-<summary><b>▶ 아키텍처 진화: MVVM → Redux 차용 (DWStore)</b></summary>
+<summary><b>아키텍처 진화: MVVM → Redux 차용 (DWStore)</b></summary>
 
 [PR #50](https://github.com/DeveloperAcademy-POSTECH/2025-C6-M6-DreamWorms/pull/50) · [PR #122](https://github.com/DeveloperAcademy-POSTECH/2025-C6-M6-DreamWorms/pull/122)
 
@@ -323,7 +323,7 @@ struct TimeLineFeature: DWReducer {
 </details>
 
 <details>
-<summary><b>▶ App Intent 기반 위치 데이터 자동 수집</b></summary>
+<summary><b>App Intent 기반 위치 데이터 자동 수집</b></summary>
 
 [PR #91](https://github.com/DeveloperAcademy-POSTECH/2025-C6-M6-DreamWorms/pull/91) · [PR #122](https://github.com/DeveloperAcademy-POSTECH/2025-C6-M6-DreamWorms/pull/122) · [PR #203](https://github.com/DeveloperAcademy-POSTECH/2025-C6-M6-DreamWorms/pull/203) · [PR #216](https://github.com/DeveloperAcademy-POSTECH/2025-C6-M6-DreamWorms/pull/216)
 
@@ -491,7 +491,7 @@ case .startLocationObserver:
 </details>
 
 <details>
-<summary><b>▶ LazyVStack → VStack + Anchor 전환</b></summary>
+<summary><b>LazyVStack → VStack + Anchor 전환</b></summary>
 
 [PR #14](https://github.com/DeveloperAcademy-POSTECH/2025-C6-M6-DreamWorms/pull/14) · [PR #41](https://github.com/DeveloperAcademy-POSTECH/2025-C6-M6-DreamWorms/pull/41) · [PR #130](https://github.com/DeveloperAcademy-POSTECH/2025-C6-M6-DreamWorms/pull/130)
 
@@ -545,7 +545,7 @@ ScrollViewReader { proxy in
 </details>
 
 <details>
-<summary><b>▶ BottomSheet 스크롤/드래그 충돌 + ScrollTarget UUID</b></summary>
+<summary><b>BottomSheet 스크롤/드래그 충돌 + ScrollTarget UUID</b></summary>
 
 [PR #130](https://github.com/DeveloperAcademy-POSTECH/2025-C6-M6-DreamWorms/pull/130)
 
@@ -591,7 +591,7 @@ func scrollToDate(_ date: Date) {
 </details>
 
 <details>
-<summary><b>▶ Timeline 실시간 검색 — Combine 없이 UUID 디바운스</b></summary>
+<summary><b>Timeline 실시간 검색 — Combine 없이 UUID 디바운스</b></summary>
 
 [PR #214](https://github.com/DeveloperAcademy-POSTECH/2025-C6-M6-DreamWorms/pull/214) · [PR #219](https://github.com/DeveloperAcademy-POSTECH/2025-C6-M6-DreamWorms/pull/219) · [PR #223](https://github.com/DeveloperAcademy-POSTECH/2025-C6-M6-DreamWorms/pull/223)
 
@@ -635,7 +635,7 @@ case .performSearch(let text, let taskID):
 </details>
 
 <details>
-<summary><b>▶ MapDispatcher — 모듈 간 느슨한 결합 통신</b></summary>
+<summary><b>MapDispatcher — 모듈 간 느슨한 결합 통신</b></summary>
 
 Timeline 셀 탭 → Map 카메라 이동 등, Feature 간 직접 의존 없이 명령을 전달하는 Dispatcher 패턴.
 
@@ -658,7 +658,7 @@ final class MapDispatcher {
 </details>
 
 <details>
-<summary><b>▶ DocC 기반 인수인계 문서화</b></summary>
+<summary><b>DocC 기반 인수인계 문서화</b></summary>
 
 [PR #244](https://github.com/DeveloperAcademy-POSTECH/2025-C6-M6-DreamWorms/pull/244)
 
