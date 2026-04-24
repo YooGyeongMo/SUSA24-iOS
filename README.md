@@ -1,7 +1,10 @@
-|<img src="https://github.com/user-attachments/assets/e795f92e-08e8-4128-aaf9-9f7750a1f7c1" width="120" />|**수사24**<br><br>경찰의 추적수사 효율을 높이는 지리적 프로파일링 앱<br>iOS Developer 4 · Designer 1 · PM 1 (2025.09 ~ 2026.03)<br>🏆 Apple Developer Academy 2025 **Showcase Spotlight Team 선정** · 🤝 경북지방경찰청 협업|
-|:-:|:-|
+# 수사24<img src="https://github.com/user-attachments/assets/e795f92e-08e8-4128-aaf9-9f7750a1f7c1" align=left width=120>
 
----
+> 경찰의 추적수사 효율을 높이는 지리적 프로파일링 앱  
+> **팀 DreamWorms(왕꿈틀이)** · iOS Developer 4 · Designer 1 · PM 1 (2025.09 ~ 2026.03)  
+> 🏆 Apple Developer Academy 2025 **Showcase Spotlight Team 선정** · 🤝 경북지방경찰청 협업
+
+<br />
 
 ## 💭 소개
 
