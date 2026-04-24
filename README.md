@@ -16,8 +16,8 @@
 <br>
 
 [![Swift](https://img.shields.io/badge/Swift-6.0-F05138?style=flat&logo=swift&logoColor=white&labelColor=F05138&color=F05138)](https://swift.org)
-[![iOS](https://img.shields.io/badge/iOS-18.0+-000000?style=flat&logo=apple&logoColor=white&labelColor=000000&color=000000)](https://developer.apple.com/ios/)
-[![Xcode](https://img.shields.io/badge/Xcode-16.0+-007ACC?style=flat&logo=xcode&logoColor=white&labelColor=007ACC&color=007ACC)](https://developer.apple.com/xcode/)
+[![iOS](https://img.shields.io/badge/iOS-26.0+-000000?style=flat&logo=apple&logoColor=white&labelColor=000000&color=000000)](https://developer.apple.com/ios/)
+[![Xcode](https://img.shields.io/badge/Xcode-26.0+-007ACC?style=flat&logo=xcode&logoColor=white&labelColor=007ACC&color=007ACC)](https://developer.apple.com/xcode/)
 
 <br>
 
