@@ -707,11 +707,11 @@ final class MapDispatcher {
 
 | 사건 등록 | App Intent 자동수집 | 지도 탭 | 타임라인 |
 |:---:|:---:|:---:|:---:|
-| <img src="https://github.com/user-attachments/assets/9676cceb-d035-4bd2-8cdd-c77214283823" width="225"/> | <img src="https://github.com/user-attachments/assets/194b83d0-88ae-4e44-a020-9761e32581af" width="225"/> | <img src="https://github.com/user-attachments/assets/54d1c455-9228-4b22-b612-62007c0bd1ca" width="225"/> | <img src="https://github.com/user-attachments/assets/e99274ca-e893-4637-9fe8-fa6c7f1b6a45" width="225"/> |
+| <img src="https://github.com/user-attachments/assets/9676cceb-d035-4bd2-8cdd-c77214283823" width="200"/> | <img src="https://github.com/user-attachments/assets/194b83d0-88ae-4e44-a020-9761e32581af" width="200"/> | <img src="https://github.com/user-attachments/assets/54d1c455-9228-4b22-b612-62007c0bd1ca" width="200"/> | <img src="https://github.com/user-attachments/assets/e99274ca-e893-4637-9fe8-fa6c7f1b6a45" width="200"/> |
 
 | 증거 스캔 | CCTV 수사 | AI 거점 분석 | |
 |:---:|:---:|:---:|:---:|
-| <img src="https://github.com/user-attachments/assets/a1bb1e40-b305-462b-824d-c4012083139d" width="225"/> | <img src="https://github.com/user-attachments/assets/71135810-55d5-4db0-8982-33daa215d6f5" width="225"/> | <img src="https://github.com/user-attachments/assets/55d2bb40-666b-41aa-8e5c-21ee065a9725" width="225"/> | |
+| <img src="https://github.com/user-attachments/assets/a1bb1e40-b305-462b-824d-c4012083139d" width="200"/> | <img src="https://github.com/user-attachments/assets/71135810-55d5-4db0-8982-33daa215d6f5" width="200"/> | <img src="https://github.com/user-attachments/assets/55d2bb40-666b-41aa-8e5c-21ee065a9725" width="200"/> | |
 
 <br>
 
