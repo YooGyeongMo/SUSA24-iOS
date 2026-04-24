@@ -703,18 +703,6 @@ final class MapDispatcher {
 
 <br>
 
-## 📺 앱 구동 화면
-
-| 사건 등록 | 지도 탭 | 타임라인 | 증거 스캔 |
-|:---:|:---:|:---:|:---:|
-| <!-- 📸 사건 등록 화면 GIF/스크린샷 --> | <!-- 📸 지도 탭 GIF/스크린샷 --> | <!-- 📸 타임라인 GIF/스크린샷 --> | <!-- 📸 증거 스캔 GIF/스크린샷 --> |
-
-| CCTV 수사 | AI 거점 분석 | App Intent 자동수집 | 검색 |
-|:---:|:---:|:---:|:---:|
-| <!-- 📸 CCTV 화면 GIF/스크린샷 --> | <!-- 📸 AI 분석 GIF/스크린샷 --> | <!-- 📸 App Intent GIF/스크린샷 --> | <!-- 📸 검색 GIF/스크린샷 --> |
-
-<br>
-
 ## 👥 Contributors
 
 | <a href="https://github.com/YooGyeongMo"><img src="https://github.com/YooGyeongMo.png" width="80"/><br/><b>Demian Yoo</b></a> | <a href="https://github.com/MuchanKim"><img src="https://github.com/MuchanKim.png" width="80"/><br/><b>Muchan Kim</b></a> | <a href="https://github.com/mini-min"><img src="https://github.com/mini-min.png" width="80"/><br/><b>mini-min</b></a> | <a href="https://github.com/delightPIP"><img src="https://github.com/delightPIP.png" width="80"/><br/><b>delightPIP</b></a> | <a href="https://github.com/Jikiim"><img src="https://github.com/Jikiim.png" width="80"/><br/><b>Jikiim</b></a> | <a href="https://github.com/youryeony"><img src="https://github.com/youryeony.png" width="80"/><br/><b>youryeony</b></a> |
