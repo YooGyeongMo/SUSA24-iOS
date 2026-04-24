@@ -685,42 +685,33 @@ final class MapDispatcher {
 
 ---
 
-## 🧱 Architecture
+## 📚 Framework · Library
 
-| Layer | 구성요소 | 설명 |
+| Category | Name | Tag |
 |:---:|:---:|:---|
-| **TCA** | DWStore, DWAction 등 | 단방향 데이터 흐름 기반 커스텀 상태 관리를 위해 Redux 패턴만 차용 |
-| **Automation** | App Intents | 메시지 공유 → 위치 데이터 백그라운드 파싱 |
-| **Persistence** | Core Data | 사건·용의자·위치 엔티티 영속화 |
-| **Data** | Repository | 프로토콜 기반 데이터 접근 추상화 |
-| **Navigation** | AppCoordinator | NavigationPath 기반 화면 전환 |
+| Framework | SwiftUI | UI |
+| | CoreData | Persistence |
+| | AppIntents | Automation |
+| | AVFoundation | Camera |
+| | Vision | OCR |
+| | CoreLocation | Location |
+| | Apple Foundation Models | On-Device AI |
+| Library | Naver Maps SDK | Map |
+| | Naver Geocoding API | Geocoding |
+| | Kakao Search API | Place Search |
+| | Alamofire | Network |
 
 <br>
 
-## 🛠 Tech Stack
+## 📺 앱 구동 화면
 
-### Core Frameworks
-![SwiftUI](https://img.shields.io/badge/SwiftUI-007AFF?style=flat&logo=swift&logoColor=white)
-![CoreData](https://img.shields.io/badge/CoreData-5856D6?style=flat&logo=apple&logoColor=white)
+| 사건 등록 | 지도 탭 | 타임라인 | 증거 스캔 |
+|:---:|:---:|:---:|:---:|
+| <!-- 📸 사건 등록 화면 GIF/스크린샷 --> | <!-- 📸 지도 탭 GIF/스크린샷 --> | <!-- 📸 타임라인 GIF/스크린샷 --> | <!-- 📸 증거 스캔 GIF/스크린샷 --> |
 
-### Automation
-![AppIntents](https://img.shields.io/badge/AppIntents-FF3B30?style=flat&logo=apple&logoColor=white)
-
-### Media & Vision
-![AVFoundation](https://img.shields.io/badge/AVFoundation-34C759?style=flat&logo=apple&logoColor=white)
-![Vision](https://img.shields.io/badge/Vision_OCR-5856D6?style=flat&logo=apple&logoColor=white)
-
-### Location & Maps
-![CoreLocation](https://img.shields.io/badge/CoreLocation-007AFF?style=flat&logo=apple&logoColor=white)
-![NaverMaps](https://img.shields.io/badge/NaverMaps-03C75A?style=flat&logo=naver&logoColor=white)
-
-### AI
-![FoundationModels](https://img.shields.io/badge/Apple_Foundation_Models-000000?style=flat&logo=apple&logoColor=white)
-
-### Environment
-![Git](https://img.shields.io/badge/Git-F05033?style=flat&logo=git&logoColor=white)
-![GitHub](https://img.shields.io/badge/GitHub-121011?style=flat&logo=github&logoColor=white)
-![Xcode](https://img.shields.io/badge/Xcode-007ACC?style=flat&logo=xcode&logoColor=white)
+| CCTV 수사 | AI 거점 분석 | App Intent 자동수집 | 검색 |
+|:---:|:---:|:---:|:---:|
+| <!-- 📸 CCTV 화면 GIF/스크린샷 --> | <!-- 📸 AI 분석 GIF/스크린샷 --> | <!-- 📸 App Intent GIF/스크린샷 --> | <!-- 📸 검색 GIF/스크린샷 --> |
 
 <br>
 
