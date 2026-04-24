@@ -72,17 +72,125 @@
 
 ---
 
-## 🤔 개발 과정에서의 고민과 배운 점
+## 🧑‍💻 문제 해결 과정
 
-### Custom Redux Architecture — DWStore
+---
 
-MVVM + Combine(`ObservableObject` + `@Published`)으로 MVP를 구현했으나, ViewModel 간 상태 불일치와 Side Effect 관리 부재가 심각해져 **단방향 아키텍처로 전면 전환**했습니다. TCA의 학습 곡선과 일정을 고려해 **Redux/MVI에서 핵심 4요소만 추출**한 경량 자체 프레임워크를 설계했고, 팀원 4명이 **1주일 내 숙달**했습니다.
+### Timeline 대량 데이터 렌더링 성능 최적화
+
+[PR #245](https://github.com/DeveloperAcademy-POSTECH/2025-C6-M6-DreamWorms/pull/245)
+
+---
+
+#### 문제 배경
+
+> LazyVStack에서 VStack으로 전환해 scrollTo 앵커 문제는 해결했지만, 5,000건 규모의 테스트 데이터를 VStack이 한 번에 렌더링하면서 새로운 성능 문제가 발생했습니다.
+
+#### Before — Instruments 분석
+
+- All Heap 메모리 **653MB**까지 상승하여 해소되지 않음
+- Hang **14회**, 평균 **3.88초**, 최대 **10.74초**
+- Thermal State가 Nominal → **Fair**까지 상승
+- 커스텀 날짜 양식을 위해 computed property에서 DateFormatter를 **셀마다 새로 생성** → 수천 개 인스턴스 반복 생성
+
+#### 해결
+
+**1. 하이브리드 렌더링** — 날짜별 그룹 상위 VStack은 전체 렌더링(scrollTo 앵커 보장), 각 날짜 그룹 내부 셀만 LazyVStack으로 전환
 
 ```swift
-// DWStore — @Observable + @MainActor로 Swift 6 완전 호환
+// [Before] VStack 전체 렌더링
+VStack(spacing: 0) {
+    ForEach(groupedLocations) { group in
+        VStack(spacing: 0) {
+            Color.clear.id(group.dateID)
+            TimeLineDateSectionHeader(...)
+            VStack(spacing: 0) {                  // ← 전체 렌더링
+                ForEach(group.consecutiveGroups) { ... }
+            }
+        }
+    }
+}
+
+// [After] 하이브리드 — 헤더 VStack + 셀 LazyVStack
+VStack(spacing: 0) {
+    ForEach(groupedLocations) { group in
+        VStack(spacing: 0) {
+            Color.clear.id(group.dateID)           // Anchor — 즉시 생성
+            TimeLineDateSectionHeader(...)
+            LazyVStack(spacing: 0) {               // ← 화면 근처만 렌더링
+                ForEach(group.consecutiveGroups) { ... }
+            }
+        }
+    }
+}
+```
+
+**2. DateFormatter static 캐싱** — computed property에서 매번 생성하던 DateFormatter를 `static let`으로 3개만 생성하여 재사용
+
+```swift
+// [Before] 셀마다 새 인스턴스 생성
+var formattedDate: String {
+    let formatter = DateFormatter()       // 5,000번 생성
+    formatter.dateFormat = "MM.dd (E)"
+    return formatter.string(from: date)
+}
+
+// [After] static let — 앱 전체에서 3개만 생성
+extension Date {
+    private static let chipFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "M.d"
+        return f
+    }()
+    private static let headerFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "M월 d일 (E)"
+        return f
+    }()
+    private static let timeFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "a h:mm"
+        return f
+    }()
+}
+```
+
+#### 결과
+
+| 항목 | Before | After | 변화 |
+|:---:|:---:|:---:|:---:|
+| All Heap 메모리 | 653 MB | 143 MB | **4.6배 감소** |
+| CPU 사용률 | ~100% 지속 | 간헐적 스파이크 | **대폭 개선** |
+| Thermal State | Nominal → Fair | Nominal 유지 | **개선** |
+| Hang | 14회, 평균 3.88s | 21회, 평균 729ms | **5.3배 개선** |
+| scrollTo 앵커 | 작동 | 작동 | **유지** |
+
+---
+
+### 아키텍처 진화: MVVM → Redux 차용 (DWStore)
+
+[PR #50](https://github.com/DeveloperAcademy-POSTECH/2025-C6-M6-DreamWorms/pull/50) · [PR #122](https://github.com/DeveloperAcademy-POSTECH/2025-C6-M6-DreamWorms/pull/122)
+
+---
+
+#### 문제 배경
+
+> MVP에서 MVVM + Combine(`ObservableObject` + `@Published`)을 사용했으나 한계에 도달했습니다.
+
+- ViewModel 내부에서 상태 변경이 어디서든 가능 → 데이터 흐름 추적 어려움
+- Map, Timeline, Dashboard가 동일 위치 데이터를 각자 관리 → **데이터 불일치**
+- Side Effect가 ViewModel에 직접 섞여 테스트 어려움
+- Swift 6 Strict Concurrency에서 `ObservableObject`의 Sendable 적합성 문제
+
+#### 해결: TCA 영감의 Custom Redux Architecture
+
+TCA의 학습 곡선과 일정을 고려해 **Redux/MVI에서 핵심 4요소만 추출**한 경량 프레임워크를 설계. 팀원 4명이 **1주일 내 숙달**.
+
+```swift
+// Store — @Observable + @MainActor로 Swift 6 안전
 @MainActor @Observable
 public final class DWStore<R: DWReducer> {
-    public private(set) var state: R.State
+    public private(set) var state: R.State  // 외부에서 직접 변경 불가
     private let reducer: R
 
     public func send(_ action: R.Action) {
@@ -100,25 +208,144 @@ public struct DWEffect<Action: DWAction>: Sendable {
     public static var none: Self { .init { _ in } }
 
     public static func task(_ work: @escaping @Sendable () async -> Action?) -> Self {
-        .init { downstream in if let a = await work() { downstream(a) } }
+        .init { downstream in
+            if let a = await work() { downstream(a) }
+        }
     }
 
     public static func merge(_ effects: DWEffect<Action>...) -> DWEffect<Action> {
         .init { downstream in
             await withTaskGroup(of: Void.self) { group in
-                for effect in effects { group.addTask { await effect.run(downstream) } }
+                for effect in effects {
+                    group.addTask { await effect.run(downstream) }
+                }
             }
         }
     }
 }
 ```
 
-### SSOT Observer — AsyncStream 실시간 동기화
-
-App Intent가 백그라운드에서 CoreData에 저장한 데이터가 자동으로 UI에 반영되는 핵심 메커니즘입니다. `MainTabFeature`가 **유일한 데이터 소유자(SSOT)**로서 `AsyncStream`을 구독하고, 하위 Feature에 단방향으로 전파합니다.
+#### Feature 패턴 예시
 
 ```swift
-// CoreData 변경 감지 AsyncStream
+struct TimeLineFeature: DWReducer {
+    struct State: DWState {
+        var locations: [Location]
+        var groupedLocations: [LocationGroupedByDate]
+        var searchText: String = ""
+    }
+
+    enum Action: DWAction {
+        case updateData(caseInfo: Case?, locations: [Location])
+        case searchTextChanged(String)
+        case locationTapped(Location)
+    }
+
+    func reduce(into state: inout State, action: Action) -> DWEffect<Action> {
+        switch action {
+        case .updateData(let caseInfo, let locations):
+            state.locations = locations
+            state.groupedLocations = groupLocations(locations)
+            return .none
+        // ...
+        }
+    }
+}
+```
+
+---
+
+### App Intent 기반 위치 데이터 자동 수집
+
+[PR #91](https://github.com/DeveloperAcademy-POSTECH/2025-C6-M6-DreamWorms/pull/91) · [PR #122](https://github.com/DeveloperAcademy-POSTECH/2025-C6-M6-DreamWorms/pull/122) · [PR #203](https://github.com/DeveloperAcademy-POSTECH/2025-C6-M6-DreamWorms/pull/203) · [PR #216](https://github.com/DeveloperAcademy-POSTECH/2025-C6-M6-DreamWorms/pull/216)
+
+---
+
+#### 도입 목적
+
+- 수동 입력 제거: "문자 확인 → 타 지도앱 수동 입력 → 위치 확인 → 팀 공유" 단계를 자동화
+- 사건별 데이터 축적: 위치 정보를 사건 단위로 자동 분류/저장
+- 실시간 가시화: 수집 즉시 지도 핀 + 타임라인 셀로 표시
+
+#### 파이프라인 흐름 (7단계)
+
+```
+SMS 수신 → iOS 단축어 트리거 → ReceiveMessageIntent.perform()
+  → 전화번호 정규화 (+82→0, 하이픈 제거)
+  → CaseRepository.findCaseTest(byCasePhoneNumber:) 사건 매칭
+  → MessageParser.extractAddress(from:) 주소 추출
+  → NaverGeocodeAPIService.geocode(address:) 좌표 변환
+  → LocationRepository.createLocationFromMessage() CoreData 저장
+  → MainTabFeature SSOT Observer → Timeline/Map 실시간 반영
+```
+
+#### iOS Shortcuts Privacy 제한 우회: 3단계 접근 전환
+
+**1차 — 전화번호 매칭**: SMS 발신자 전화번호로 사건 자동 매칭 설계
+→ **Apple Privacy 정책으로 발신자 전화번호 접근 차단**
+
+**2차 — 사건번호 매칭**: 메시지 본문은 접근 가능함을 확인, 매칭 키를 사건번호로 전환
+
+```swift
+@Parameter(title: "사건번호") var caseNumber: String
+
+guard let caseID = try await caseRepo.findCase(byCaseNumber: caseNumber) else {
+    return .result(dialog: "해당 사건번호를 찾을 수 없습니다")
+}
+```
+
+**3차 — 전화번호 앱 내 사전 등록**: 수사관 피드백 "매번 입력 어렵다" → 전화번호를 앱 내부에 사전 등록, Shortcuts에서는 SMS 본문만 전달
+
+```swift
+let normalized = senderPhoneNumber
+    .replacingOccurrences(of: "-", with: "")
+    .replacingOccurrences(of: "+82", with: "0")
+
+guard let caseID = try await caseRepo.findCaseTest(byCasePhoneNumber: normalized) else {
+    return .result(dialog: "해당 전화번호의 사건을 찾을 수 없습니다")
+}
+```
+
+→ 수사관 입력 단계 **4단계 → 0단계**, Shortcut 1회 설정 후 완전 자동화
+
+#### 핵심 구현: ReceiveMessageIntent
+
+```swift
+struct ReceiveMessageIntent: AppIntent {
+    static var title: LocalizedStringResource = "기지국 위치정보 저장하기"
+
+    @Parameter(title: "메시지 내용") var messageBody: String
+    @Parameter(title: "발신자 번호") var senderPhoneNumber: String
+
+    func perform() async throws -> some IntentResult & ProvidesDialog {
+        let normalized = senderPhoneNumber
+            .replacingOccurrences(of: "-", with: "")
+            .replacingOccurrences(of: "+82", with: "0")
+
+        guard let caseID = try await caseRepo.findCaseTest(byCasePhoneNumber: normalized) else {
+            return .result(dialog: "해당 전화번호의 사건을 찾을 수 없습니다")
+        }
+
+        guard let address = MessageParser.extractAddress(from: messageBody) else {
+            return .result(dialog: "주소를 추출할 수 없습니다")
+        }
+
+        let geocodeResult = try await NaverGeocodeAPIService.shared.geocode(address: address)
+
+        try await locationRepo.createLocationFromMessage(
+            caseID: caseID, address: address,
+            latitude: geocodeResult.latitude, longitude: geocodeResult.longitude
+        )
+        return .result(dialog: "위치가 저장되었습니다: \(address)")
+    }
+}
+```
+
+#### SSOT Observer — AsyncStream 실시간 동기화
+
+App Intent로 저장된 데이터가 자동으로 UI에 반영되는 핵심 메커니즘. `MainTabFeature`가 **유일한 데이터 소유자(SSOT)**로서 `AsyncStream`을 구독하고, 하위 Feature에 단방향으로 전파합니다.
+
+```swift
 func watchLocations(caseId: UUID) -> AsyncStream<[Location]> {
     AsyncStream { continuation in
         Task {
@@ -137,69 +364,62 @@ func watchLocations(caseId: UUID) -> AsyncStream<[Location]> {
 }
 ```
 
-### iOS Shortcuts Privacy 제한 우회 — 3단계 접근 전환
+---
 
-초기 전화번호 기반 매칭 → **Apple Privacy 정책으로 차단** → 사건번호 매칭으로 전환 → 현장 피드백 "매번 입력 어렵다" → **전화번호 앱 내 사전 등록으로 재전환**. 수사관 입력 단계 **4단계 → 0단계**.
+### LazyVStack → VStack + Anchor 전환
 
-```swift
-// [2차] 사건번호 기반 매칭
-guard let caseID = try await caseRepo.findCase(byCaseNumber: caseNumber) else {
-    return .result(dialog: "해당 사건번호를 찾을 수 없습니다")
-}
+[PR #14](https://github.com/DeveloperAcademy-POSTECH/2025-C6-M6-DreamWorms/pull/14) · [PR #41](https://github.com/DeveloperAcademy-POSTECH/2025-C6-M6-DreamWorms/pull/41) · [PR #130](https://github.com/DeveloperAcademy-POSTECH/2025-C6-M6-DreamWorms/pull/130)
 
-// [3차] 전화번호 앱 내부 사전 등록 → 자동 매칭
-let normalized = senderPhoneNumber
-    .replacingOccurrences(of: "-", with: "")
-    .replacingOccurrences(of: "+82", with: "0")
+---
 
-guard let caseID = try await caseRepo.findCaseTest(byCasePhoneNumber: normalized) else {
-    return .result(dialog: "해당 전화번호의 사건을 찾을 수 없습니다")
-}
-```
+#### 문제 배경
 
-### Timeline 대량 데이터 렌더링 최적화
+> 타임라인 바텀시트에서 날짜 칩을 탭하면 해당 날짜 섹션으로 스크롤하는 기능이 필요했습니다. `LazyVStack`은 화면 밖의 Anchor `.id()`가 아직 생성되지 않아 `scrollTo()`가 실패했습니다.
 
-5,000건 데이터에서 **All Heap 메모리 653MB, Hang 평균 3.88초** 발생. Instruments(Allocations + Time Profiler)로 병목을 추적하여 **하이브리드 렌더링 + DateFormatter 캐싱**을 적용.
+#### 해결: VStack + ScrollViewReader
 
 ```swift
-// [Before] VStack 전체 렌더링 — DateFormatter 매번 생성
-VStack(spacing: 0) {
+// [Before] LazyVStack — 화면 밖 Anchor 미생성으로 scrollTo 실패
+LazyVStack(spacing: 0) {
     ForEach(groupedLocations) { group in
-        VStack(spacing: 0) {
-            Color.clear.id(group.dateID)
-            TimeLineDateSectionHeader(...)
-            VStack(spacing: 0) {                  // ← 전체 렌더링
-                ForEach(group.consecutiveGroups) { ... }
-            }
-        }
+        Color.clear.frame(height: 0).id(group.dateID)
+        // ...
     }
 }
 
-// [After] 하이브리드 — 헤더 VStack(앵커 보장) + 셀 LazyVStack(화면 근처만)
+// [After] VStack — 모든 Anchor가 즉시 생성됨
 VStack(spacing: 0) {
     ForEach(groupedLocations) { group in
         VStack(spacing: 0) {
-            Color.clear.id(group.dateID)           // Anchor — 즉시 생성
-            TimeLineDateSectionHeader(...)
-            LazyVStack(spacing: 0) {               // ← 화면 근처만 렌더링
-                ForEach(group.consecutiveGroups) { ... }
-            }
+            Color.clear.frame(height: 0).id(group.dateID)  // 즉시 생성
+            // ...
         }
     }
 }
 ```
 
-| 항목 | Before | After | 변화 |
-|:---:|:---:|:---:|:---:|
-| All Heap 메모리 | 653 MB | 143 MB | **4.6배 감소** |
-| Hang | 평균 3.88s | 평균 729ms | **5.3배 개선** |
-| Thermal State | Nominal → Fair | Nominal 유지 | **개선** |
+초기 렌더링 비용이 증가하지만, 바텀시트 내부의 데이터 양(수십~수백 개)에서는 체감할 수 없는 수준. 이후 5,000건 규모에서 발생한 성능 문제는 위의 **하이브리드 렌더링**으로 해결.
+
+---
 
 ### BottomSheet 스크롤/드래그 충돌 + ScrollTarget UUID
 
-시트 mid 높이에서 스크롤 대신 드래그가 잡히는 문제를 `.presentationContentInteraction(.scrolls)`로 해결. 같은 날짜 칩 재탭 시 scrollTo 미동작을 **UUID 기반 Equatable 오버라이드**로 해결.
+[PR #130](https://github.com/DeveloperAcademy-POSTECH/2025-C6-M6-DreamWorms/pull/130)
+
+---
+
+#### 문제점
+
+1. **제스처 충돌**: PresentationDetent 시트의 드래그 제스처가 내부 ScrollView 스크롤보다 우선 처리됨
+2. **동일 값 무시**: `.onChange(of:)`는 같은 값이 다시 설정되면 트리거되지 않음 → 같은 날짜 재탭 시 스크롤 안 됨
+
+#### 해결
 
 ```swift
+// 1. 스크롤 우선 처리
+.presentationContentInteraction(.scrolls)
+
+// 2. ScrollTarget에 UUID 포함 → 동일 날짜 재탭에도 새 값으로 인식
 struct ScrollTarget: Equatable {
     let dateID: String
     let triggerID: UUID    // 매 탭마다 새 UUID 생성
@@ -210,9 +430,21 @@ struct ScrollTarget: Equatable {
 }
 ```
 
-### 검색 디바운스 — Combine 없이 UUID 기반 무효화
+---
 
-한글 조합형 입력 시 검색 호출 **8회→1회** 감소. Combine의 `.debounce()` 대신 **Task + UUID 검증**으로 아키텍처 일관성을 유지.
+### Timeline 실시간 검색 — Combine 없이 UUID 디바운스
+
+[PR #214](https://github.com/DeveloperAcademy-POSTECH/2025-C6-M6-DreamWorms/pull/214) · [PR #219](https://github.com/DeveloperAcademy-POSTECH/2025-C6-M6-DreamWorms/pull/219) · [PR #223](https://github.com/DeveloperAcademy-POSTECH/2025-C6-M6-DreamWorms/pull/223)
+
+---
+
+#### 문제점
+
+- 한글 입력: "대" → "대구" → "대구시" 각 글자마다 검색 호출 → **불필요한 8회 이상 호출**
+- Combine `.debounce()` 사용 시 DWStore 패턴과 충돌
+- 이전 검색 결과가 나중에 도착하면 **stale 결과가 최신을 덮어쓰는** 위험
+
+#### 해결
 
 ```swift
 case .searchTextChanged(let text):
@@ -229,7 +461,13 @@ case .performSearch(let text, let taskID):
     // stale 결과 자동 무시 → 최신 검색만 실행
 ```
 
+→ 검색 호출 **8회 → 1회**, stale 결과 방지, DWStore **아키텍처 일관성 유지**
+
+---
+
 ### MapDispatcher — 모듈 간 느슨한 결합 통신
+
+---
 
 Timeline 셀 탭 → Map 카메라 이동 등, Feature 간 직접 의존 없이 명령을 전달하는 Dispatcher 패턴.
 
@@ -250,79 +488,70 @@ final class MapDispatcher {
 
 ---
 
-## 📚 아키텍처 & 기술 스택
+### DocC 기반 인수인계 문서화
 
-| Category | Stack |
-|:---:|:---|
-| **Architecture** | Custom Redux (DWStore) · SSOT · Repository Pattern · Coordinator · DI |
-| **UI** | SwiftUI · PresentationDetent · Custom BottomSheet |
-| **Data** | CoreData · Repository Protocol · `@MainActor` isolation |
-| **Automation** | AppIntents · iOS Shortcuts · MessageParser |
-| **Concurrency** | Swift 6 Strict Concurrency · AsyncStream · `Sendable` |
-| **Map** | Naver Maps SDK · Naver Geocoding API · Kakao Search API |
-| **AI** | Apple Foundation Models (On-Device) |
-| **Media** | AVFoundation · Vision (OCR) |
-| **Network** | Alamofire · URLSession · Endpoint Pattern |
-| **Documentation** | DocC (인수인계 문서 — SVG 다이어그램 10개 포함) |
+[PR #244](https://github.com/DeveloperAcademy-POSTECH/2025-C6-M6-DreamWorms/pull/244)
 
 ---
 
-## 🗂 폴더 구조
+> 2026년 4월 Exit 시점에서, 디자인팀과 다음 개발자를 위해 Apple DocC로 코드와 문서를 한 곳에서 관리.
 
-```
-SUSA24-iOS/
-├── Sources/
-│   ├── Application/
-│   │   ├── Coordinator/          # AppCoordinator · AppRoute
-│   │   └── Factory/              # ModuleFactory (DI)
-│   ├── Core/
-│   │   ├── DWArchitecture/       # DWStore · DWReducer · DWEffect
-│   │   └── Components/           # DWButton · DWTabBar · DWToast
-│   ├── Data/
-│   │   ├── Persistence/          # CoreData · PersistenceController
-│   │   └── Repository/           # CaseRepository · LocationRepository
-│   ├── Presentation/
-│   │   ├── MainTabScene/         # MainTabView · MainTabFeature (SSOT)
-│   │   ├── MapScene/             # MapView · MapFeature · MapDispatcher
-│   │   ├── TimeLineScene/        # TimeLineView · TimeLineFeature
-│   │   ├── CaseListScene/        # CaseListView
-│   │   ├── SearchScene/          # SearchView · Kakao API
-│   │   ├── CameraScene/          # Custom Camera · Vision OCR
-│   │   └── DashboardScene/       # AI 거점 분석
-│   └── Util/
-│       ├── AppIntent/            # ReceiveMessageIntent · MessageParser
-│       ├── Network/              # Alamofire · Endpoint · Geocoding
-│       └── Camera/               # CameraModel · CaptureSession
-├── Documentation.docc/           # DocC 인수인계 문서 (SVG 10개)
-└── Tests/
-```
+| 문서 | 내용 |
+|:---|:---|
+| `appintent.md` (315줄) | App Intent 자동 수집 파이프라인 전체 문서화 |
+| `timeline.md` | 타임라인 바텀시트 컴포넌트 및 데이터 흐름 |
+
+- 시퀀스 다이어그램: 7단계 Intent 흐름
+- 데이터 변환 다이어그램: SMS → Entity 변환 과정
+- 의존성 다이어그램: 컴포넌트 의존 관계
+- 상태 다이어그램: State Machine 시각화
 
 ---
 
-## 📺 앱 구동 화면
+## 🧱 Architecture
 
-<!-- 🎬 GIF 또는 스크린샷 (여기에 앱 주요 화면 GIF 넣기) -->
-<!-- 
-| 사건 등록 | 지도 탭 | 타임라인 | 증거 스캔 | AI 분석 |
-|:---:|:---:|:---:|:---:|:---:|
-| <img src="GIF_URL" width="180"/> | <img src="GIF_URL" width="180"/> | <img src="GIF_URL" width="180"/> | <img src="GIF_URL" width="180"/> | <img src="GIF_URL" width="180"/> |
--->
+| Layer | 구성요소 | 설명 |
+|:---:|:---:|:---|
+| **TCA** | DWStore, DWAction 등 | 단방향 데이터 흐름 기반 커스텀 상태 관리를 위해 Redux 패턴만 차용 |
+| **Automation** | App Intents | 메시지 공유 → 위치 데이터 백그라운드 파싱 |
+| **Persistence** | Core Data | 사건·용의자·위치 엔티티 영속화 |
+| **Data** | Repository | 프로토콜 기반 데이터 접근 추상화 |
+| **Navigation** | AppCoordinator | NavigationPath 기반 화면 전환 |
 
----
+<br>
+
+## 🛠 Tech Stack
+
+### Core Frameworks
+![SwiftUI](https://img.shields.io/badge/SwiftUI-007AFF?style=flat&logo=swift&logoColor=white)
+![CoreData](https://img.shields.io/badge/CoreData-5856D6?style=flat&logo=apple&logoColor=white)
+
+### Automation
+![AppIntents](https://img.shields.io/badge/AppIntents-FF3B30?style=flat&logo=apple&logoColor=white)
+
+### Media & Vision
+![AVFoundation](https://img.shields.io/badge/AVFoundation-34C759?style=flat&logo=apple&logoColor=white)
+![Vision](https://img.shields.io/badge/Vision_OCR-5856D6?style=flat&logo=apple&logoColor=white)
+
+### Location & Maps
+![CoreLocation](https://img.shields.io/badge/CoreLocation-007AFF?style=flat&logo=apple&logoColor=white)
+![NaverMaps](https://img.shields.io/badge/NaverMaps-03C75A?style=flat&logo=naver&logoColor=white)
+
+### AI
+![FoundationModels](https://img.shields.io/badge/Apple_Foundation_Models-000000?style=flat&logo=apple&logoColor=white)
+
+### Environment
+![Git](https://img.shields.io/badge/Git-F05033?style=flat&logo=git&logoColor=white)
+![GitHub](https://img.shields.io/badge/GitHub-121011?style=flat&logo=github&logoColor=white)
+![Xcode](https://img.shields.io/badge/Xcode-007ACC?style=flat&logo=xcode&logoColor=white)
+
+<br>
 
 ## 👥 Contributors
 
 | <a href="https://github.com/YooGyeongMo"><img src="https://github.com/YooGyeongMo.png" width="80"/><br/><b>Demian Yoo</b></a> | <a href="https://github.com/MuchanKim"><img src="https://github.com/MuchanKim.png" width="80"/><br/><b>Muchan Kim</b></a> | <a href="https://github.com/mini-min"><img src="https://github.com/mini-min.png" width="80"/><br/><b>mini-min</b></a> | <a href="https://github.com/delightPIP"><img src="https://github.com/delightPIP.png" width="80"/><br/><b>delightPIP</b></a> | <a href="https://github.com/Jikiim"><img src="https://github.com/Jikiim.png" width="80"/><br/><b>Jikiim</b></a> | <a href="https://github.com/youryeony"><img src="https://github.com/youryeony.png" width="80"/><br/><b>youryeony</b></a> |
 |:---:|:---:|:---:|:---:|:---:|:---:|
 | iOS Developer | iOS Developer | iOS Developer | iOS Developer | UI/UX Designer | Product Manager |
-
----
-
-## 📎 Links
-
-- 📰 [드림웜즈 언론소개](https://www.notion.so/24-310ca74acc7b8155964fe2f077483ec8)
-- 📱 [수사24 앱 소개](https://www.notion.so/24-310ca74acc7b8142807bf02a3b47d928)
-- ✍️ [팀 테크 블로그 (Medium)](https://medium.com/%EC%99%95%EA%BF%88%ED%8B%80%EC%9D%B4-dreamworms)
 
 ---
 
