@@ -1,4 +1,4 @@
-# 수사24<img src="Assets/logo.png" align=left width=120>
+# 수사24<img src="Assets/logo.png" align=left width=150>
 
 > 경찰의 추적수사 효율을 높이는 지리적 프로파일링 앱  
 > **팀 DreamWorms(왕꿈틀이)** · iOS Developer 4 · Designer 1 · PM 1 (2025.09 ~ 2026.03)  
