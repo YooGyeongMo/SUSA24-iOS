@@ -9,103 +9,66 @@
 
 ## 💭 소개
 
-> 통신사 기지국 문자를 **자동으로 수집**하여, 사건별 피의자 동선을 **지도와 타임라인으로 시각화**하는 수사 지원 앱입니다.
->
-> 형사님들이 5분마다 수신되는 기지국 SMS를 일일이 확인하고 엑셀에 정리하던 수작업을, **AppIntent 기반 End-to-End 자동화 파이프라인**으로 대체하여 문자 확인·문서작업 시간을 **0시간으로 단축**했습니다.
->
-> 현재 **경상북도경찰청 테스트베드 투입 준비 중**
+> 형사들의 신속하고 정확한 추적수사를 위해 피의자 통신 기록과 활동 패턴을 실시간 분석하고 수사 전략을 제안하는 **'지리적 프로파일링'** 앱
 
----
+<img width="100%" alt="경북지방경찰청 형사기동대 협업" src="Assets/hero.jpeg" />
 
-## ✨ 기능과 구현 사항
+<br>
 
-### 기술 개요
+[![Swift](https://img.shields.io/badge/Swift-6.0-F05138?style=flat&logo=swift&logoColor=white&labelColor=F05138&color=F05138)](https://swift.org)
+[![iOS](https://img.shields.io/badge/iOS-18.0+-000000?style=flat&logo=apple&logoColor=white&labelColor=000000&color=000000)](https://developer.apple.com/ios/)
+[![Xcode](https://img.shields.io/badge/Xcode-16.0+-007ACC?style=flat&logo=xcode&logoColor=white&labelColor=007ACC&color=007ACC)](https://developer.apple.com/xcode/)
 
-- **Custom Redux Architecture** (DWStore) 기반 단방향 상태 관리
-- **AppIntent + AsyncStream** 기반 실시간 데이터 자동 수집
-- **SSOT (Single Source of Truth)** 패턴으로 데이터 일관성 보장
-- Swift 6 **Strict Concurrency** 완전 대응
+<br>
 
-<!-- 📸 전체 화면 스크린샷 그리드 (여기에 앱 전체 화면 캡처 이미지 넣기) -->
-<!-- 예시: Kompass처럼 2행 5열 그리드 -->
-<!-- <img width="100%" alt="앱 전체 화면" src="스크린샷_그리드_이미지_URL" /> -->
+## 💡 기능
 
-### 1. 사건 분류
+### 0. 사건 분류
+> 배정받은 사건을 사건번호 기준으로 등록하고, 피의자 통신추적 기록을 사건별로 자동 구분·관리합니다.
 
-배정받은 사건을 사건번호 기준으로 등록하고, 피의자 통신추적 기록을 사건별로 자동 구분·관리합니다.
-
-<!-- 📸 사건 목록 화면 -->
 <img width="100%" alt="사건 분류" src="https://github.com/user-attachments/assets/9676cceb-d035-4bd2-8cdd-c77214283823" />
 
-### 2. App Intent 기반 위치 데이터 자동 수집
+----
 
-통신사 기지국 문자를 **iOS 단축어 + AppIntent**로 자동 수집합니다. SMS 수신 → 주소 파싱 → 좌표 변환 → CoreData 저장 → 지도/타임라인 실시간 반영까지 **7단계 자동화 파이프라인**.
+### 1. 메시지에서 위치 데이터 자동 추출
+> **App Intent**로 피의자의 통신 기록 메시지를 선택하면, 백그라운드에서 피의자 위치 데이터를 **자동으로 파싱**하여 사건에 즉시 등록합니다.
 
-```swift
-struct ReceiveMessageIntent: AppIntent {
-    static var title: LocalizedStringResource = "기지국 위치정보 저장하기"
-
-    @Parameter(title: "메시지 내용") var messageBody: String
-    @Parameter(title: "발신자 번호") var senderPhoneNumber: String
-
-    func perform() async throws -> some IntentResult & ProvidesDialog {
-        let normalized = senderPhoneNumber
-            .replacingOccurrences(of: "-", with: "")
-            .replacingOccurrences(of: "+82", with: "0")
-
-        guard let caseID = try await caseRepo.findCaseTest(byCasePhoneNumber: normalized) else {
-            return .result(dialog: "해당 전화번호의 사건을 찾을 수 없습니다")
-        }
-
-        guard let address = MessageParser.extractAddress(from: messageBody) else {
-            return .result(dialog: "주소를 추출할 수 없습니다")
-        }
-
-        let geocodeResult = try await NaverGeocodeAPIService.shared.geocode(address: address)
-
-        try await locationRepo.createLocationFromMessage(
-            caseID: caseID, address: address,
-            latitude: geocodeResult.latitude, longitude: geocodeResult.longitude
-        )
-        return .result(dialog: "위치가 저장되었습니다: \(address)")
-    }
-}
-```
-
-<!-- 📸 App Intent 동작 화면 -->
 <img width="100%" alt="App Intent" src="https://github.com/user-attachments/assets/194b83d0-88ae-4e44-a020-9761e32581af" />
 
-### 3. 피의자 현재위치 확인 & 생활 패턴 분석
+----
 
-Naver Maps SDK 기반 위치 핀 표시, **기지국 500m 반경 바운딩 박스 오버레이**로 피의자가 머문 영역을 시각화합니다. 여러 시점의 기지국 반경이 **겹치는 영역**을 한눈에 파악하여 출동 판단을 지원합니다.
+### 2. 피의자의 현재위치 확인 & 생활 패턴 분석
+> 수사24 **`지도 탭`**에서 피의자의 행적과 현재 위치를 확인해 돌발 행동은 없는지 살핍니다.
 
-<!-- 📸 지도 탭 화면 -->
 <img width="100%" alt="지도" src="https://github.com/user-attachments/assets/54d1c455-9228-4b22-b612-62007c0bd1ca" />
 
-### 4. Timeline BottomSheet (시·공간 통합 탐색)
+----
 
-날짜별 그룹화된 위치 데이터를 **3단 Detent 바텀시트 타임라인**으로 시각화합니다. 연속 방문 셀 그룹화, **Top3 방문 장소 ColorStick**, 실시간 검색(Debounce 250ms), 날짜 칩 탭→스크롤 이동을 지원합니다.
+### 3. 피의자의 수상한 행동 패턴 파악
+> 누적 빈도를 통해 피의자가 피해자의 생활 반경에 자주 접근하는 등 특이 위험 패턴을 파악합니다.
 
-<!-- 📸 타임라인 바텀시트 화면 -->
 <img width="100%" alt="수상한 패턴" src="https://github.com/user-attachments/assets/e99274ca-e893-4637-9fe8-fa6c7f1b6a45" />
 
-### 5. 증거 사진 촬영 & OCR 인식
+----
 
-AVFoundation 기반 커스텀 카메라로 현장 증거를 촬영하고, **Vision 프레임워크로 문서를 자동 감지·텍스트 인식**하여 지도 위치와 연결합니다.
+### 4. 추가 증거 활용
+> 피의자 지인으로부터 `제보받은 증거`를 스캔해서 등록하고, 지도에서 `장소 별 연관성을 파악`하고 스토킹 정황을 포착합니다.
 
-<!-- 📸 증거 스캔 화면 -->
 <img width="100%" alt="증거" src="https://github.com/user-attachments/assets/a1bb1e40-b305-462b-824d-c4012083139d" />
 
-### 6. CCTV 수사 & AI 거점 분석
+----
 
-지도 위 **거점 3곳을 지정**하면 해당 지역 공공 CCTV 리스트를 자동 취합합니다. **Apple Foundation Models(온디바이스 AI)**가 피의자 주요 거점을 한 줄로 요약하여 수사 전략 수립을 지원합니다.
+### 5. CCTV 수사
+> `추적 탭`에서 피해자 생활반경 내의 `CCTV 리스트`를 확인하고 탐문지역을 명확히 좁힙니다.
 
-<!-- 📸 CCTV + AI 분석 화면 -->
 <img width="100%" alt="CCTV" src="https://github.com/user-attachments/assets/71135810-55d5-4db0-8982-33daa215d6f5" />
-<img width="100%" alt="AI 분석" src="https://github.com/user-attachments/assets/55d2bb40-666b-41aa-8e5c-21ee065a9725" />
 
-<!-- 🎬 데모 영상 -->
-https://github.com/user-attachments/assets/312d3e54-f710-4a5c-839a-2b13fb9869ab
+----
+
+### 6. 주요 거점 분석
+> `애플의 AI모델(파운데이션 모델)`이 한 줄로 요약해주는 `피의자 주요 거점` 분석 결과를 통해 잠복해야할 곳의 `장소와 시간`을 신속 정확하게 확인해서 `검거 전략`을 세울 수 있습니다.
+
+<img width="100%" alt="AI 분석" src="https://github.com/user-attachments/assets/55d2bb40-666b-41aa-8e5c-21ee065a9725" />
 
 ---
 
