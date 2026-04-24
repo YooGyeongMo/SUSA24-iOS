@@ -2,7 +2,8 @@
 
 > 경찰의 추적수사 효율을 높이는 지리적 프로파일링 앱  
 > **팀 DreamWorms(왕꿈틀이)** · iOS Developer 4 · Designer 1 · PM 1 (2025.09 ~ 2026.03)  
-> 🏆 Apple Developer Academy 2025 **Showcase Spotlight Team 선정** · 🤝 경북지방경찰청 협업
+> 🏆 Apple Developer Academy 2025 **Showcase Spotlight Team 선정** · 🤝 경북지방경찰청 협업  
+> [📰 개발팀 외부언론 소개](https://www.notion.so/demn/24-310ca74acc7b8155964fe2f077483ec8) · [✍️ 팀 테크 블로그 (Medium)](https://medium.com/%EC%99%95%EA%BF%88%ED%8B%80%EC%9D%B4-dreamworms)
 
 <br />
 
